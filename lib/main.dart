@@ -69,22 +69,53 @@ class _MyHomePageState extends State<MyHomePage> {
    ),
   );
 }
-}
-
 void showTaskDialog(BuildContext context) {
   TextEditingController controller = TextEditingController();
-
+final formKey = GlobalKey<FormState>();
   showDialog(context: context, builder: 
    (context) {
     return AlertDialog(
       title: Text('Dodaj nowe zadanie'),
-      content: TextField(controller: controller,
-      decoration: InputDecoration(hintText: 'wprowadz tresc zadania'),
+      content: Form(
+        key: formKey,
+        child: TextFormField(
+        validator: (value){
+          if(value ==null || value.trim().isEmpty){
+            return 'Wprowadz prosze tresc zadania';
+          }
+          else 
+          {
+            return null;
+          }
+        },
+        controller: controller,
+        decoration: InputDecoration(hintText: 'wprowadz tresc zadania'),
+        ),
       ),
+      actions: [
+        TextButton(
+        child: Text('Anuluj'),
+        onPressed: () {Navigator.of(context).pop();},
+        ),
+        TextButton(
+          onPressed: () {
+            if(formKey.currentState!.validate()) {
+              setState(() {
+              tasks.add(Task(title: controller.text));
+              });
+              Navigator.of(context).pop();
+            }
+          
+          },
+          child: Text('Dodaj'))
+      ],
     );
    } 
    );
 }
+}
+
+
 
 List<Task> tasks = [Task(title:'zadanie1'),Task(title: 'zadanie2'),Task(title: 'zadanie3')];
 
