@@ -3,6 +3,7 @@ import 'package:todo_list_app/data/local_storage.dart';
 import 'package:todo_list_app/data/quote_service.dart';
 import 'package:todo_list_app/models/task.dart';
 import 'package:todo_list_app/presentation/screens/task_details_screen.dart';
+import 'package:todo_list_app/presentation/widgets/task_item.dart';
 
 
 class MyHomePage extends StatefulWidget {
@@ -18,6 +19,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   LocalStorage localStorage = LocalStorage();
   QuoteService quoteService = QuoteService();
+  final GlobalKey<AnimatedListState> listKey = GlobalKey<AnimatedListState>();
 
 @override
 void initState(){
@@ -28,7 +30,7 @@ void initState(){
 Future<void> getQuote() async {
   String? quote = await quoteService.fetchRandomQuote();
   if(quote != null){
-    addQuoteToTask(quote);
+    addTask(quote);
   }else{
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('nie udalo sie pobrac')),
@@ -36,9 +38,10 @@ Future<void> getQuote() async {
   }
 }
 
-void addQuoteToTask(String title){
+void addTask(String title){
   setState(() {
-    tasks.add(Task(title:title));
+    tasks.insert(0,Task(title:title));
+    listKey.currentState?.insertItem(0);
   });
   saveData();
 }
@@ -47,41 +50,51 @@ Future<void> loadData() async{
   List<Task> loadedTasks = await localStorage.loadTasks();
   setState((){
     tasks = loadedTasks;
+    listKey.currentState?.insertAllItems(0, tasks.length);
   });
 }
 
 Future<void> saveData() async {
   await localStorage.saveTasks(tasks);
 }
+
+Future<void> removeTask(int index) async
+{
+      final removedItem = tasks[index];
+             // addTask(controller.text);
+              setState(() {
+                tasks.removeAt(index);
+              });
+              listKey.currentState?.removeItem(index, (context,animation) => TaskItem(
+                animation: animation,
+              task: removedItem,
+              onEdit: () {},
+              onDelete: () {},
+              onTap: () {},
+              ),
+              );
+              await saveData();
+}
+
+
+void toggleTask(Task task){
+  setState(() {
+    task.isCompleted = !task.isCompleted;
+  }); saveData();
+}
   @override
   Widget build(BuildContext context) {
 
     return Scaffold(
    
-      body: ListView.builder(itemCount: tasks.length, itemBuilder: (context, index) {
-        return ListTile(
-          onLongPress: () =>  goToTaskDetails(tasks[index]),
-          leading: Icon(tasks[index].isCompleted ? Icons.check_box : Icons.check_box_outline_blank_outlined,
-          ),
-          trailing: IconButton(onPressed: () async {
-            setState(() {
-              tasks.removeAt(index);
-            });
-            await saveData();
-          }, icon: Icon(Icons.delete),),
-          title: Text(
-            tasks[index].title, 
-            style: TextStyle(
-              decoration: tasks[index].isCompleted ? TextDecoration.lineThrough : null,
-          ),
-      ), onTap: () async { 
-        setState(() {
-
-          tasks[index].isCompleted = !tasks[index].isCompleted;
-        });
-        await saveData();
-      },
-    );
+      body: AnimatedList(
+        key: listKey,
+        initialItemCount: tasks.length, 
+        itemBuilder: (context, index, animation) {
+        return TaskItem(onEdit: () => goToTaskDetails(tasks[index]),
+        onDelete:() => removeTask(index) ,
+        onTap: () => toggleTask(tasks[index]), task: tasks[index], animation: animation,
+        );
   },),
     
     floatingActionButton: Column(
@@ -150,9 +163,10 @@ final formKey = GlobalKey<FormState>();
         TextButton(
           onPressed: () {
             if(formKey.currentState!.validate()) {
-              setState(() {
-              tasks.add(Task(title: controller.text));
-              });
+              addTask(controller.text);
+              // setState(() {
+              // tasks.add(Task(title: controller.text));
+              // });
               saveData();
               Navigator.of(context).pop();
             }

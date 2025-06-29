@@ -7,4 +7,4 @@ class Task{
   Task({this.isCompleted = false, required this.title});
 }
 
-List<Task> tasks = [Task(title:'zadanie1'),Task(title: 'zadanie2'),Task(title: 'zadanie3')];
+List<Task> tasks = [];
